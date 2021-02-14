@@ -1,10 +1,5 @@
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
-import java.io.{BufferedReader, FileReader}
-
-import org.apache.spark.rdd.RDD
-
-import scala.collection.mutable
 
 object MyMain {
   def calcNodes(sc: SparkContext, path:String): Long ={
@@ -22,11 +17,10 @@ object MyMain {
     val lines = sc.textFile(path).filter(!_.contains("#"))
     val result = lines.map(elem => {
       val edge = elem.split("\\s")
-      (edge(0).toInt,1)
+      (edge(1).toInt,1)
     }).reduceByKey((a,b) => a+b)
-    //result.foreach(println)
-    println(result.reduce((elem1,elem2) => (1, elem1._2 + elem2._2))._2 / nodes.toDouble)
-    //println(result.count())
+    val average = result.map(a => (1,a._2)).reduce((a,b) => (1, a._2+b._2))._2/nodes.toDouble
+    println(average)
   }
 
   def task1_outdeg(sc: SparkContext,path:String,nodes:Long): Unit ={
@@ -34,14 +28,14 @@ object MyMain {
     val lines = sc.textFile(path).filter(!_.contains("#"))
     val result = lines.map(elem => {
       val edge = elem.split("\\s")
-      (edge(1).toInt,1)
+      (edge(0).toInt,1)
     }).reduceByKey((a,b) => a+b)
 
-    //result.foreach(println)
-    println(result.reduce((elem1,elem2) => (1, elem1._2 + elem2._2))._2 / nodes.toDouble)
+    val average = result.map(a => (1,a._2)).reduce((a,b) => (1, a._2+b._2))._2/nodes.toDouble
+    println(average)
   }
 
-  def task2(sc: SparkContext,path:String): Unit ={
+  def task2(sc: SparkContext,path:String,nodes:Long): Unit ={
     val lines = sc.textFile(path).filter(!_.contains("#"))
 
     val undirectEdges = lines.map(elem => {
@@ -51,29 +45,27 @@ object MyMain {
       val edge = elem._1.toSeq
       (edge.head,edge.last)
     })
-    println(undirectEdges.count())
 
+    val adjL = undirectEdges.flatMap(edge =>{
+      List((edge._1, Set(edge._2)),(edge._2, Set(edge._1)))
+    }).reduceByKey(_++_)
 
+    val adjMmap = adjL.collect().toMap
 
-
-/*
-    val undirect_x2 = sc.makeRDD(undirectEdges.map(edge => Set[(Int,Int)](edge._1 -> edge._2,edge._2 -> edge._1))
-      .reduce((set1,set2) => set1 ++ set2).toSeq)
-
-    undirect_x2.map(elem => {
-      undirect_x2.filter(_._1==elem._2)
+    val result = adjL.flatMap(elem =>{
+      for(x <- elem._2.toSeq) yield (elem._1, (elem._2 & adjMmap(x)).count(_=>true))
+    }).reduceByKey(_+_).map(elem =>{
+      val deg = adjMmap(elem._1).count(_=>true).toDouble
+      (elem._1, if(deg>1) elem._2.toDouble/ deg/(deg-1.0) else 0.0, deg)
     })
 
-*/
-    //TRY FLATMAP
+    val average = result.map(a => (a._2,1.0)).reduce((a,b)=> {
+      val current = a._2 + b._2
+      ((a._1 * a._2 + b._1 * b._2)/current,current)
+    })
+    println(average._1)
 
 
-/*//map of node and its neighbours
-    val nodeNeigh = undirect_x2.groupByKey()
-
-    nodeNeigh(nodeNeigh.first()._2.head)
-
- */
   }
   def main(args: Array[String]): Unit = {
     System.setProperty("hadoop.home.dir", "c://hadoop//")
@@ -81,11 +73,11 @@ object MyMain {
     val sc = new SparkContext(conf)
 
     val path = "C:\\Users\\User\\Desktop\\studia\\bda2\\big\\lab2\\src\\main\\resources\\web-Stanford.txt"
-    //val nodes = calcNodes(sc,path)
+    val nodes = calcNodes(sc,path)
 
-    //task1_indeg(sc,path,nodes)
-    //task1_outdeg(sc,path,nodes)
-    task2(sc,path)
+    task1_indeg(sc,path,nodes)
+    task1_outdeg(sc,path,nodes)
+    task2(sc,path,nodes)
 
   }
 }
