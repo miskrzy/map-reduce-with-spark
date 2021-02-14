@@ -2,6 +2,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
 
 object MyMain {
+  #function calculating number of nodes in graph
   def calcNodes(sc: SparkContext, path:String): Long ={
     val lines = sc.textFile(path).filter(!_.contains("#"))
     val nodes = lines.flatMap(elem =>{
@@ -12,6 +13,7 @@ object MyMain {
     nodes.count()
   }
 
+  #function calculating the in-degree for all nodes
   def task1_indeg(sc: SparkContext,path:String,nodes:Long): Unit ={
 
     val lines = sc.textFile(path).filter(!_.contains("#"))
@@ -23,6 +25,7 @@ object MyMain {
     println(average)
   }
 
+  #function calculating the out-degree for all nodes
   def task1_outdeg(sc: SparkContext,path:String,nodes:Long): Unit ={
 
     val lines = sc.textFile(path).filter(!_.contains("#"))
@@ -35,6 +38,7 @@ object MyMain {
     println(average)
   }
 
+  #function calculating clustering coefficient for all nodes
   def task2(sc: SparkContext,path:String,nodes:Long): Unit ={
     val lines = sc.textFile(path).filter(!_.contains("#"))
 
