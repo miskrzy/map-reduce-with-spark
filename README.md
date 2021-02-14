@@ -11,4 +11,4 @@ characteristics calculated:
 To run the program:
  - put the graph-file from https://snap.stanford.edu/data/web-Stanford.html to resources directory
  - load maven dependencies
- - run the main funcion
+ - run the main function
